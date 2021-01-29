@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d
 
 
-n_entry = 10000
+n_entry = 20000
 
 # constants
 R_BOHR = 4.0 * constants.pi * constants.epsilon_0 * constants.hbar**2 / (constants.m_e * constants.e**2)
@@ -38,13 +38,6 @@ def RY2(n, l, m, x) :
 	ry = RY(n, l, m, x)
 	return (ry * ry.conjugate()).real
 
-#def gradRY2(n, l, m, x, eps = 1.0e-9) :
-#	ry2_0 = RY2(n, l, m, x)
-#	df_dr = (RY2(n, l, m, x + np.array([eps, 0, 0])) - ry2_0) / eps
-#	df_dtheta = (RY2(n, l, m, x + np.array([0, eps, 0])) - ry2_0) / eps
-#	df_dphi = (RY2(n, l, m, x + np.array([0, 0, eps])) - ry2_0) / eps
-#	return np.array([df_dr, df_dtheta, df_dphi])
-
 # radial funciton in momentum space
 # see Hey. APJ 61, 28 (1993) for detail
 # p should be provided by the atomic unit, p_unit = constants.hbar * Z / R_BOHR
@@ -67,24 +60,6 @@ def FY2(n, l, m, k) :
 	fy = FY(n, l, m, k)
 	return (fy * fy.conjugate()).real
 
-#def gradFY2(n, l, m, k, eps = 1.0e-9) :
-#	fy2_0 = FY2(n, l, m, k)
-#	df_dp = (FY2(n, l, m, k + np.array([eps, 0, 0])) - fy2_0) / eps
-#	df_dtheta = (FY2(n, l, m, k + np.array([0, eps, 0])) - fy2_0) / eps
-#	df_dphi = (FY2(n, l, m, k + np.array([0, 0, eps])) - fy2_0) / eps
-#	return np.array([df_dp, df_dtheta, df_dphi])
-
-#def FY2d3(n, l, m, k) :
-#	fy2 = FY2(n, l, m, k)
-#	return fy2 / ((k[0])**2 * np.sin(k[1]))
-
-#def gradFY2d3(n, l, m, k, eps = 1.0e-9) :
-#	fy2d3_0 = FY2d3(n, l, m, k)
-#	df_dp = (FY2d3(n, l, m, k + np.array([eps, 0, 0])) - fy2d3_0) / eps
-#	df_dtheta = (FY2d3(n, l, m, k + np.array([0, eps, 0])) - fy2d3_0) / eps
-#	df_dphi = (FY2d3(n, l, m, k + np.array([0, 0, eps])) - fy2d3_0) / eps
-#	return np.array([df_dp, df_dtheta, df_dphi])
-
 def random_thetaphi() :
 	# random variables
 	phi = np.random.uniform(0.0, 2.0 * constants.pi)
@@ -93,7 +68,7 @@ def random_thetaphi() :
 	
 	return theta, phi
 
-# Monte Carlo sempling
+# Monte Carlo sampling
 class SampleMC :
 	def __init__(self, n, l, m, z, eps = 1.0e-3) :
 		p0 = np.abs(np.random.normal(0.0, eps))
@@ -105,7 +80,6 @@ class SampleMC :
 		self.z = z
 		self.p0 = p0
 		self.eps = eps
-		self.var = np.sqrt(2.0 * self.eps)
 
 	# Metropolis sampling
 	def sample(self) :
@@ -157,21 +131,27 @@ class SampleMC :
 
 # test
 def plot_F() :
-	a_p = np.linspace(0.0, 2.0, 100)
-	a_f = np.zeros((100, ))
-	for i in range(100) :
-		f = F(4, 0, a_p[i])
-		f2 = (f * f.conjugate()).real
-		f2p2 = f2 * a_p[i]**2
-		a_f[i] = f2p2
-	plt.plot(a_p, a_f)
+	a_p = np.linspace(0.0, 2.0, 1000)
+	a_f = np.zeros((1+2+3, 1000))
+	i_orbit = 0
+	for n in range(1, 4) :
+		for l in range(0, n) :
+			for i in range(1000) :
+				f = F(n, l, a_p[i])
+				f2 = (f * f.conjugate()).real
+				f2p2 = f2 * a_p[i]**2
+				a_f[i_orbit, i] = f2p2
+			plt.plot(a_p, a_f[i_orbit], label = "n=%d, l=%d" % (n, l))
+			i_orbit += 1
 	plt.xlim(0.0, 2.0)
+	plt.ylim(0.0, 8.0)
+	plt.legend()
 	plt.show()
 
 # main
 def main() :
 	# sampler
-	sampler = SampleMC(3, 2, -1, 1, 1.0e-1)
+	sampler = SampleMC(3, 2, 0, 1, 1.0e-1)
 	# momentum
 	#p = np.random.normal(0.0, 1.0, (3, ))	# * z * constants.hbar / R_BOHR
 	# storage
@@ -193,8 +173,10 @@ def main() :
 	# plot
 	plt.hist(a_p_sample, weights = a_p_weight, bins = 100, range = (0.0, 2.0), density = True)
 	plt.xlim(0.0, 2.0)
+	plt.ylim(0.0, 8.0)
 	plt.grid()
 	plt.show()
+	plot_F()
 	fig = plt.figure()
 	ax = fig.add_subplot(111, projection = "3d")
 	ax.scatter(a_p_x, a_p_y, zs = a_p_z, s = 1)

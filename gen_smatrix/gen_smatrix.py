@@ -71,14 +71,32 @@ def ubar(p, s) :
 
 # contraction
 def contr(v) :
-	mat = np.zeros((4, 4))
+	mat = np.zeros((4, 4), dtype = "complex128")
 	for i in range(4) :
 		mat += G[i] * v[i]
 	return mat
 
 # fermion propagator
 def propag(p, k) :
-	# denominator
-	denom = 2.0 * np.dot(p, k)
 	# matrix
-	mat = conrt(p) + contr(k) + constants.m_e * constants.c * np.eye(4)
+	mat = conrt(p) + contr(k) - constants.m_e * constants.c * np.eye(4)
+	mat = 1.0j * np.linalg.inv(mat)
+	return mat
+
+# second-order Compton scattering amplitude
+def amp_compton(p_in, s_in, k_in, e_in, p_out, s_out, k_out, e_out) :
+	# factor, fine-structure constant
+	factor = -1j * constants.alpha
+	# u
+	term_u_out = ubar(p_out, s_out)
+	term_u_in = u(p_in, s_in)
+	# e contraction
+	term_e_out = contr(e_out)
+	term_e_in = contr(e_in)
+	# propagator
+	pr = propag(p_in, k_in)
+	# calculation
+	v = np.matmul( term_e_out, np.matmul( pr, np.matmul(term_e_in, term_u_in.T) ) ).T
+	amp = factor * np.dot(term_u_out, v)
+
+	return amp
