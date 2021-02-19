@@ -1,6 +1,6 @@
 import numpy as np
 import math
-from scipy import constants
+from scipy import constants, linalg
 import matplotlib.pyplot as plt
 
 
@@ -10,10 +10,10 @@ mc2 = constants.m_e * constants.c**2
 # gamma matrices
 G = np.array([	\
 	[	\
+		[0, 0, 1, 0],	\
+		[0, 0, 0, 1],	\
 		[1, 0, 0, 0],	\
-		[0, 1, 0, 0],	\
-		[0, 0, -1, 0],	\
-		[0, 0, 0, -1]	\
+		[0, 1, 0, 0]	\
 	], [	\
 		[0, 0, 0, 1],	\
 		[0, 0, 1, 0],	\
@@ -94,8 +94,30 @@ class Momentum4Electron(Momentum4) :
 
 
 # spinors of a free electron
-# according to Relativistic Quantum Mechanics by W. Greiner
 def u(p, s) :
+	# 2-spinor
+	x = np.zeros((2, ), dtype = "complex128")
+	if s > 0.5 :
+		x[0] = 1.0
+	else :
+		x[1] = 1.0
+	# 2x2 matrices
+	psu = np.array([	\
+		[p.p4[0] + p.p4[3], p.p4[1] - 1.0j*p.p4[2]],	\
+		[p.p4[1] + 1.0j*p.p4[2], p.p4[0] - p.p4[3]]	\
+	], dtype = "complex128")
+	psd = np.array([	\
+		[p.p4[0] - p.p4[3], - p.p4[1] + 1.0j*p.p4[2]],	\
+		[- p.p4[1] - 1.0j*p.p4[2], p.p4[0] + p.p4[3]]	\
+	], dtype = "complex128")
+	# square root of matrices
+	sqpsu = linalg.sqrtm(psu)
+	sqpsd = linalg.sqrtm(psd)
+	# multiply
+	u = np.matmul(sqpsu, x)
+	d = np.matmul(sqpsd, x)
+	a_u = np.array([u[0], u[1], d[0], d[1]])
+	"""
 	# energy
 	E = p.p4[0]
 	# normalization factor
@@ -113,10 +135,33 @@ def u(p, s) :
 		a_u[1] = 1.0
 		a_u[2] = (p.p4[1] - 1j * p.p4[2]) / (E + 1.0)
 		a_u[3] = - p.p4[3] / (E + 1.0)
-	
+	"""
 	return a_u
 
 def ubar(p, s) :
+	# 2-spinor
+	x = np.zeros((2, ), dtype = "complex128")
+	if s > 0.5 :
+		x[0] = 1.0
+	else :
+		x[1] = 1.0
+	# 2x2 matrices
+	psu = np.array([	\
+		[p.p4[0] + p.p4[3], p.p4[1] + 1.0j*p.p4[2]],	\
+		[p.p4[1] - 1.0j*p.p4[2], p.p4[0] - p.p4[3]]	\
+	], dtype = "complex128")
+	psd = np.array([	\
+		[p.p4[0] - p.p4[3], - p.p4[1] - 1.0j*p.p4[2]],	\
+		[- p.p4[1] + 1.0j*p.p4[2], p.p4[0] + p.p4[3]]	\
+	], dtype = "complex128")
+	# square root of matrices
+	sqpsu = linalg.sqrtm(psu)
+	sqpsd = linalg.sqrtm(psd)
+	# multiply
+	u = np.matmul(sqpsu, x)
+	d = np.matmul(sqpsd, x)
+	a_u = np.array([u[0], u[1], d[0], d[1]])
+	"""
 	# energy
 	E = p.p4[0]
 	# normalization factor
@@ -134,7 +179,7 @@ def ubar(p, s) :
 		a_u[1] = 1.0
 		a_u[2] = (p.p4[1] + 1j * p.p4[2]) / (E + 1.0)
 		a_u[3] = - p.p4[3] / (E + 1.0)
-	
+	"""
 	return np.matmul(a_u, G[0])
 
 # fermion propagator
@@ -179,12 +224,12 @@ def smatrix_compton(p_in, s_in, k_in, e_in, p_out, s_out, k_out, e_out) :
 	ene_out = p_out.p4[0]
 	k0_in = k_in.p4[0]
 	k0_out = k_out.p4[0]
-	factor = np.sqrt(ene_in * ene_out * k0_in * k0_out)
-	#factor = ene_out * k0_out
+	#factor = np.sqrt(ene_in * ene_out * k0_in * k0_out)
+	factor = k0_out / k0_in
 
 	#return amp / factor
-	#return amp * factor
-	return amp
+	return amp * factor
+	#return amp
 
 # cross section, NOT normalized properly
 def cs_compton(p_in, s_in, k_in, e_in, p_out, s_out, k_out, e_out) :
@@ -250,8 +295,8 @@ def main() :
 		e_out_1, e_out_2 = get_ortho3(k_out)
 		# S-matrix
 		den = 0.0
-		#for s_in, s_out in [[-0.5, -0.5], [0.5, 0.5], [-0.5, 0.5], [0.5, -0.5]] :
-		for s_in, s_out in [[0.5, 0.5], [-0.5, -0.5]] :
+		#for s_in, s_out in [[0.5, 0.5], [-0.5, -0.5]] :
+		for s_in, s_out in [[-0.5, -0.5], [0.5, 0.5], [-0.5, 0.5], [0.5, -0.5]] :
 			smatrix_1 = smatrix_compton(p_in, s_in, k_in, e_in, p_out, s_out, k_out, e_out_1)
 			smatrix_2 = smatrix_compton(p_in, s_in, k_in, e_in, p_out, s_out, k_out, e_out_2)
 			den += (smatrix_1 * smatrix_1.conjugate()).real + (smatrix_2 * smatrix_2.conjugate()).real

@@ -3,7 +3,8 @@ from scipy import constants
 import matplotlib.pyplot as plt
 
 from gen_dist import gen_dist_p
-from gen_smatrix import gen_smatrix
+#from gen_smatrix import gen_smatrix
+from gen_smatrix import _gen_smatrix
 
 # constants
 N = 3
